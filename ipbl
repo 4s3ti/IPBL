@@ -1,0 +1,89 @@
+#!/bin/bash
+
+###SCRIPT VARS###
+
+bl_dir="blacklists"
+wl="whitelist.wl"
+
+ssh_bl="https://lists.blocklist.de/lists/ssh.txt"
+mail_bl="https://lists.blocklist.de/lists/mail.txt"
+
+###FUNCTIONS###
+
+#check if ip is whitelisted else add it to ipset
+function blip {
+  for ip in $(cat $bl); do
+      if grep -Fxq $ip $wl &> /dev/null; then
+        echo "$ip is whitelisted ignoring"
+      else
+        ipset add $blname $ip
+      fi
+  done
+}
+
+function chk_iptables {
+    echo "checking iptables rules"
+    if iptables -t raw -S | grep -q $blname; then
+        echo "iptables rule matching $blname exists, skipping ..."
+    else
+        if [[ $blname = "mailbl" ]]; then
+            echo "No rule matching $blname creating..."
+            iptables -t raw -I PREROUTING -p tcp --dport 25 -m set --match-set $blname src -j DROP
+        elif [[ $blname = "sshbl" ]]; then
+            echo "No rule matching $blname creating..."
+            iptables -t raw -I PREROUTING -p tcp --dport 22 -m set --match-set $blname src -j DROP
+        else
+            echo "no rules known for $blname"
+            exit 1
+        fi
+    fi
+}
+
+###check if blacklist dir exists and get the blacklist files.###
+function get_bl {
+if [[ ! -d $bl_dir ]]; then
+    mkdir $bl_dir
+fi
+  while true; do
+    echo "getting Blacklisted IP's ..."
+    wget -q $ssh_bl -O $bl_dir/ssh.bl
+    wget -q $mail_bl -O $bl_dir/mail.bl
+    break;
+  done
+}
+
+#check if ipsets exists otherwise creates it.
+function main_func {
+get_bl
+      for bl in $bl_dir/*; do
+        f=${bl##*/}
+        blname=${f%.*}bl
+        echo "checking if $blname exists"
+        if ipset -L $blname > /dev/null 2>&1; then
+            echo "$blname IPset already exists, flushing ..."
+            echo "adding new ips to $blname list"
+            ipset flush $blname
+            blip
+            chk_iptables
+        else
+            echo "creating $blname ipset"
+            ipset create $blname hash:ip
+            echo "adding blacklisted ips to $blname"
+            blip
+            chk_iptables
+        fi
+    done
+}
+
+#### SCRIPT ####
+
+###CHECK FOR ROOT###
+if [[ $EUID != 0 ]]; then
+    echo "Must run as root! please use sudo or change to root account"
+    exit 1
+fi
+
+
+main_func
+
+exit 0
