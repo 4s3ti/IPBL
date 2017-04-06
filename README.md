@@ -7,6 +7,8 @@ IPBL is an IP blocker script with the intent to minimize the script kiddies and 
 IPBL, as is, should work with any distro, however it as only been tested on Arch Linux.
 I will keep this information updated as I test the script in other distros. 
 
+Tested and working on: Arch Linux, CentOS, Ubuntu
+
 # Dependencies
 
 To be able to use IPBL script you must have 
