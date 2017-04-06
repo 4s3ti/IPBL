@@ -3,8 +3,9 @@
 ###SCRIPT VARS###
 
 bl_dir="blacklists"
-wl="whitelist.wl"
+wl="whitelist"
 
+#comment ssh_bl or mail_bl if you do not want to use it
 ssh_bl="https://lists.blocklist.de/lists/ssh.txt"
 mail_bl="https://lists.blocklist.de/lists/mail.txt"
 
@@ -46,7 +47,9 @@ if [[ ! -d $bl_dir ]]; then
 fi
   while true; do
     echo "getting Blacklisted IP's ..."
+#   Comment line below to discard ssh blacklist
     wget -q $ssh_bl -O $bl_dir/ssh.bl
+#   comment this below to discard mail blacklist
     wget -q $mail_bl -O $bl_dir/mail.bl
     break;
   done
