@@ -16,6 +16,8 @@ function blip {
   for ip in $(cat $bl); do
       if grep -Fxq $ip $wl &> /dev/null; then
         echo "$ip is whitelisted ignoring"
+      elif grep -q ":" $ip $> /dev/null; then
+        echo "This is an IPv6 IP, Ignoring"
       else
         ipset add $blname $ip
       fi
